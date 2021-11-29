@@ -42,6 +42,11 @@ def getMarker(q):
 
 # func()
 
+############## Persets ############## 
+k = 7 # TODO: test several k, elbow method
+scale_data = True # TODO: Change this.
+select_features = False # TODO: Change this.
+
 file_path = "./winequality-white.csv" 
 spark = SparkSession.builder.appName("test").getOrCreate()
 sqlContext = SQLContext(sparkContext = spark.sparkContext, sparkSession = spark)
@@ -95,11 +100,19 @@ print('#########################################################################
 print('########################################################################################')
 data.groupBy("quality").count().show()
 # Create features column, assembling together the numeric data
-vecAssembler = VectorAssembler(
-    inputCols=['volatile acidity', 'residual sugar',
-		'free sulfur dioxide', 'total sulfur dioxide', 'density',
-		'pH', 'alcohol'],
+if(select_features):
+	vecAssembler = VectorAssembler(
+		inputCols=['volatile acidity', 'residual sugar',
+			'free sulfur dioxide', 'total sulfur dioxide', 'density',
+			'pH', 'alcohol'],
+		outputCol="features")
+else:
+	vecAssembler = VectorAssembler(
+    inputCols=['fixed acidity', 'volatile acidity', 'citric acid', 'residual sugar',
+		'chlorides', 'free sulfur dioxide', 'total sulfur dioxide', 'density',
+		'pH', 'sulphates', 'alcohol'],
     outputCol="features")
+
 
 wine_with_features = vecAssembler.transform(data)
 scaler = RobustScaler(inputCol="features", outputCol="scaled features",
@@ -116,8 +129,6 @@ wine_with_features.select('features').show()
 print('##########################################################################')
 
 # Do K-means
-k = 7 # TODO: test several k, elbow method
-scale_data = True # TODO: Change this.
 kmeans_algo = KMeans().setK(k).setSeed(1).setFeaturesCol("scaled features" if scale_data else "features")
 model = kmeans_algo.fit(wine_with_features)
 centers = model.clusterCenters()
@@ -168,9 +179,14 @@ plt.show()
 
 # Dimenstion reduction. From 11D to 3D
 # by PCA method
-datamatrix =  RowMatrix(data.select(['volatile acidity', 'residual sugar',
-		'free sulfur dioxide', 'total sulfur dioxide', 'density',
-		'pH', 'alcohol']).rdd.map(list))
+if(select_features):
+	datamatrix =  RowMatrix(data.select(['volatile acidity', 'residual sugar',
+			'free sulfur dioxide', 'total sulfur dioxide', 'density',
+			'pH', 'alcohol']).rdd.map(list))
+else:
+	datamatrix =  RowMatrix(data.select(['fixed acidity', 'volatile acidity', 'citric acid', 'residual sugar',
+		'chlorides', 'free sulfur dioxide', 'total sulfur dioxide', 'density',
+		'pH', 'sulphates', 'alcohol']).rdd.map(list))
 
 # Compute the top 3 principal components. The "best" hyperplane.
 pc = datamatrix.computePrincipalComponents(3)
