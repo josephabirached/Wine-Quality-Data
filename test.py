@@ -11,9 +11,7 @@ from pyspark.mllib.linalg.distributed import RowMatrix
 from pyspark.ml.feature import StandardScaler
 from pyspark.ml.feature import RobustScaler
 
-from test2 import getMarker
-
-def getMarker2(q):
+def getMarker(q):
 	return 'X' if q<=5 else 'o'
 
 # def getMarker3(q):
@@ -34,6 +32,10 @@ def getMarker2(q):
 # getMarkerDict = {
 # 	2:getMarker2,
 # 	3:getMarker3,
+# 	4:getMarker4,
+# 	5:getMarker5,
+# 	6:getMarker6,
+#	7:getMarker7
 # }
 
 # func = getMarkerDict(k)
@@ -59,7 +61,6 @@ sqlContext = SQLContext(sparkContext = spark.sparkContext, sparkSession = spark)
  |-- quality: string (nullable = true)
 """
 
-scale_data = False
 # Load white wine data
 nullable = True
 schema = StructType([
@@ -116,6 +117,7 @@ print('#########################################################################
 
 # Do K-means
 k = 7 # TODO: test several k, elbow method
+scale_data = True # TODO: Change this.
 kmeans_algo = KMeans().setK(k).setSeed(1).setFeaturesCol("scaled features" if scale_data else "features")
 model = kmeans_algo.fit(wine_with_features)
 centers = model.clusterCenters()
@@ -224,27 +226,27 @@ new_Y = pd.DataFrame(
 
 # Vizualize with PCA, 2 components
 # Colors code k-means results, cluster numbers
-# fig = plt.figure().gca()
+fig = plt.figure().gca()
 
-# for i in range(len(wine_quality_repartitions)):
-# 	fig.scatter(new_X [wine_for_viz['quality'] == qualities[i]],
-#     	         new_Y [wine_for_viz['quality'] == qualities[i]],
-#     	         c = wine_quality_repartitions[i].prediction.map(colors),
-# 				 marker = markers[i]) 
+for i in range(len(wine_quality_repartitions)):
+	fig.scatter(new_X [wine_for_viz['quality'] == qualities[i]],
+    	         new_Y [wine_for_viz['quality'] == qualities[i]],
+    	         c = wine_quality_repartitions[i].prediction.map(colors),
+				 marker = markers[i]) 
 
 
-# fig.set_xlabel('Component 1')
-# fig.set_ylabel('Component 2')
-# plt.show()
+fig.set_xlabel('Component 1')
+fig.set_ylabel('Component 2')
+plt.show()
 
 ###################### Density map ######################
 
-# fig = plt.figure().gca()
-# fig.hist2d(wine_for_viz['quality'],
-# 	        wine_for_viz['prediction']) 
-# fig.set_xlabel('Component 1')
-# fig.set_ylabel('Component 2')
-# plt.show()
+fig = plt.figure().gca()
+fig.hist2d(wine_for_viz['quality'],
+	        wine_for_viz['prediction']) 
+fig.set_xlabel('Component 1')
+fig.set_ylabel('Component 2')
+plt.show()
 
 # for Q in qualities:
 #   fig = plt.figure().gca()
@@ -257,7 +259,7 @@ new_Y = pd.DataFrame(
 #   plt.show()
 
 
-###################### Sijhoutte ######################
+###################### Silhoutte ######################
 from pyspark.ml.evaluation import ClusteringEvaluator
 evaluator = ClusteringEvaluator()
 silhouette = evaluator.evaluate(wine_with_clusters)
@@ -306,19 +308,6 @@ print("Silhouette with squared euclidean distance = " + str(silhouette))
 # fig.set_ylabel('Component 2')
 # plt.show()
 
-# wine_cluter_filter = wine_with_clusters.where(wine_with_clusters.quality < 5)
-# silhouette = evaluator.evaluate(wine_cluter_filter)
-# print("Silhouette with squared euclidean distance = " + str(silhouette))
-# wine_cluter_filter = wine_with_clusters.where(wine_with_clusters.quality == 5)
-# silhouette = evaluator.evaluate(wine_cluter_filter)
-# print("Silhouette with squared euclidean distance = " + str(silhouette))
-# wine_cluter_filter = wine_with_clusters.where(wine_with_clusters.quality == 6)
-# silhouette = evaluator.evaluate(wine_cluter_filter)
-# print("Silhouette with squared euclidean distance = " + str(silhouette))
-# wine_cluter_filter = wine_with_clusters.where(wine_with_clusters.quality > 6)
-# silhouette = evaluator.evaluate(wine_cluter_filter)
-# print("Silhouette with squared euclidean distance = " + str(silhouette))
-
 preds = wine_for_viz[wine_for_viz['quality'] < 6].prediction
 actuals = wine_for_viz[wine_for_viz['quality'] < 6]['quality']
 under_6_incluster0 = 0
@@ -339,3 +328,9 @@ for p in preds:
 		over_6_incluster0 += 1
 	else:
 		over_6_incluster1 += 1
+
+print('############### Element distribution ###############')
+print('TP: '+str(under_6_incluster0))
+print('FP: '+str(under_6_incluster1))
+print('TN: '+str(over_6_incluster1))
+print('FN: '+str(over_6_incluster0))
