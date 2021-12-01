@@ -1,20 +1,19 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import pyspark
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.feature import VectorAssembler
 from pyspark.sql import SQLContext, SparkSession
 from pyspark.sql.types import StructType, StructField, FloatType, StringType
 from pyspark.mllib.linalg.distributed import RowMatrix
-from pyspark.ml.feature import StandardScaler
+# from pyspark.ml.feature import StandardScaler
 from pyspark.ml.feature import RobustScaler
 
 
 ################# Persets ################## 
 
 k = 2 # TODO: test several k, elbow method
-scale_data = True # TODO: Change this.
+scale_data = False # TODO: Change this.
 select_features = True # TODO: Change this.
 
 ############################################
@@ -43,10 +42,10 @@ def getMarker5(q):
 def getMarker6(q):
 	if q > 7:
 		return 'X'
-	return markers[q-3]
+	return markers[int(q-3)]
 
 def getMarker7(q):
-	return markers[q-3]
+	return markers[int(q-3)]
 
 getMarkerDict = {
 	2:getMarker2,
