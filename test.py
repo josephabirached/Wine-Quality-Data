@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -11,41 +10,52 @@ from pyspark.mllib.linalg.distributed import RowMatrix
 from pyspark.ml.feature import StandardScaler
 from pyspark.ml.feature import RobustScaler
 
-def getMarker(q):
+
+################# Persets ################## 
+
+k = 2 # TODO: test several k, elbow method
+scale_data = True # TODO: Change this.
+select_features = True # TODO: Change this.
+
+############################################
+
+markers = ['o', 'v', '^', '>', '<', '1', 's', 'p', 'P', '*', 'X']
+
+
+def getMarker2(q):
 	return 'X' if q<=5 else 'o'
 
-# def getMarker3(q):
-# 	return 'X' if q<=4 else 'o' if q<=5 else '+'
+def getMarker3(q):
+	return 'X' if q<=4 else 'o' if q<=5 else '+'
 
-# def getMarker2(q):
-# 	return 'X' if q<=5 else 'o'
+def getMarker4(q):
+	if q <= 5:
+		return 'X' if q<5 else 'o'
+	else:
+		return 'P' if q > 6 else '*'
 
-# def getMarker2(q):
-# 	return 'X' if q<=5 else 'o'
+def getMarker5(q):
+	if q <= 5:
+		return 'X' if q<4 else 'o' if q==4 else 'v'
+	else:
+		return 'P' if q > 6 else '*'
 
-# def getMarker2(q):
-# 	return 'X' if q<=5 else 'o'
+def getMarker6(q):
+	if q > 7:
+		return 'X'
+	return markers[q-3]
 
-# def getMarker2(q):
-# 	return 'X' if q<=5 else 'o'
+def getMarker7(q):
+	return markers[q-3]
 
-# getMarkerDict = {
-# 	2:getMarker2,
-# 	3:getMarker3,
-# 	4:getMarker4,
-# 	5:getMarker5,
-# 	6:getMarker6,
-#	7:getMarker7
-# }
-
-# func = getMarkerDict(k)
-
-# func()
-
-############## Persets ############## 
-k = 7 # TODO: test several k, elbow method
-scale_data = True # TODO: Change this.
-select_features = False # TODO: Change this.
+getMarkerDict = {
+	2:getMarker2,
+	3:getMarker3,
+	4:getMarker4,
+	5:getMarker5,
+	6:getMarker6,
+	7:getMarker7
+}
 
 file_path = "./winequality-white.csv" 
 spark = SparkSession.builder.appName("test").getOrCreate()
@@ -155,25 +165,6 @@ for i in range(k):
 
 print(colors)
 
-markers = ['o', 'v', '^', '>', '<', '1', 's', 'p', 'P', '*', 'X']
-print(len(qualities))
-print(len(markers))
-fig = plt.figure().gca(projection='3d')
-for i in range(len(qualities)):
-	fig.scatter(wine_quality_repartitions[i]['volatile acidity'],
-    	         wine_quality_repartitions[i]['volatile acidity'],
-    	         wine_quality_repartitions[i]['free sulfur dioxide'],
-    	         c = wine_quality_repartitions[i].prediction.map(colors),
-				 marker = markers[i]) 
-	print('!!!!!!!!!!!!!!!!!!!!!!')
-	print(i)
-
-fig.set_xlabel('volatile acidity')
-fig.set_ylabel('volatile acidity')
-fig.set_zlabel('free sulfur dioxide')
-plt.show()
-
-
 
 ### PCA
 
@@ -207,7 +198,7 @@ new_Z = pd.DataFrame(
 print(new_X)
 # Vizualize with PCA, 3 components
 # Colors code k-means results, cluster numbers
-
+func = getMarkerDict[k]
 fig = plt.figure().gca(projection='3d')
 
 for i in range(len(wine_quality_repartitions)):
@@ -216,7 +207,7 @@ for i in range(len(wine_quality_repartitions)):
     	         new_Y [wine_for_viz['quality'] == qualities[i]],
     	         new_Z [wine_for_viz['quality'] == qualities[i]],
     	         c = wine_quality_repartitions[i].prediction.map(colors),
-				 marker = markers[i]) 
+				 marker = func(qualities[i])) 
 
 fig.set_xlabel('Component 1')
 fig.set_ylabel('Component 2')
@@ -244,11 +235,12 @@ new_Y = pd.DataFrame(
 # Colors code k-means results, cluster numbers
 fig = plt.figure().gca()
 
+
 for i in range(len(wine_quality_repartitions)):
 	fig.scatter(new_X [wine_for_viz['quality'] == qualities[i]],
     	         new_Y [wine_for_viz['quality'] == qualities[i]],
     	         c = wine_quality_repartitions[i].prediction.map(colors),
-				 marker = markers[i]) 
+				 marker = func(qualities[i])) 
 
 
 fig.set_xlabel('Component 1')
@@ -283,46 +275,6 @@ print("Silhouette with squared euclidean distance = " + str(silhouette))
 
 ##################################################################################################
 
-# Spliting into two categories:
-# 1. Quality smaller than 6
-# 2. Quality bigger or equal to 6
-
-# fig = plt.figure().gca()
-# fig.scatter(new_X [wine_for_viz['quality'] < 6],
-# 				new_Y [wine_for_viz['quality'] < 6],
-# 				marker = markers[0]) 
-# fig.scatter(new_X [wine_for_viz['quality'] >= 6],
-# 				new_Y [wine_for_viz['quality'] >= 6],
-# 				marker = markers[1]) 
-# fig.set_xlabel('Component 1')
-# fig.set_ylabel('Component 2')
-# plt.show()
-
-
-###########################################################################################
-
-# Spliting into 4 categories:
-# 1. Quality smaller than 5
-# 2. Quality equal to 5
-# 3. Quality equal to 6
-# 4. Quality bigger than 6
-
-# fig = plt.figure().gca()
-# fig.scatter(new_X [wine_for_viz['quality'] < 5],
-# 				new_Y [wine_for_viz['quality'] < 5],
-# 				marker = markers[0]) 
-# fig.scatter(new_X [wine_for_viz['quality'] == 5],
-# 				new_Y [wine_for_viz['quality'] == 5],
-# 				marker = markers[1])
-# fig.scatter(new_X [wine_for_viz['quality'] == 6],
-# 				new_Y [wine_for_viz['quality'] == 6],
-# 				marker = markers[2]) 
-# fig.scatter(new_X [wine_for_viz['quality'] > 6],
-# 				new_Y [wine_for_viz['quality'] > 6],
-# 				marker = markers[3])  
-# fig.set_xlabel('Component 1')
-# fig.set_ylabel('Component 2')
-# plt.show()
 
 preds = wine_for_viz[wine_for_viz['quality'] < 6].prediction
 actuals = wine_for_viz[wine_for_viz['quality'] < 6]['quality']
@@ -348,5 +300,5 @@ for p in preds:
 print('############### Element distribution ###############')
 print('TP: '+str(under_6_incluster0))
 print('FP: '+str(under_6_incluster1))
-print('TN: '+str(over_6_incluster1))
-print('FN: '+str(over_6_incluster0))
+print('TN: '+str(over_6_incluster0))
+print('FN: '+str(over_6_incluster1))
